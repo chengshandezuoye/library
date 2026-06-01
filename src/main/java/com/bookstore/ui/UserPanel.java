@@ -61,8 +61,6 @@ public class UserPanel extends JPanel {
         JButton createButton = new JButton("创建普通管理员");
         JButton updateButton = new JButton("修改本人信息");
         usernameField.setEditable(currentUser.isSuperAdmin());
-        passwordField.setEnabled(currentUser.isSuperAdmin());
-        confirmPasswordField.setEnabled(currentUser.isSuperAdmin());
         createButton.setEnabled(currentUser.isSuperAdmin());
         createButton.addActionListener(event -> createAdmin());
         updateButton.addActionListener(event -> updateSelf());
@@ -316,8 +314,8 @@ public class UserPanel extends JPanel {
 
     private void updateSelf() {
         try {
-            String newPassword = currentUser.isSuperAdmin() ? new String(passwordField.getPassword()) : "";
-            String confirmPassword = currentUser.isSuperAdmin() ? new String(confirmPasswordField.getPassword()) : "";
+            String newPassword = new String(passwordField.getPassword());
+            String confirmPassword = new String(confirmPasswordField.getPassword());
             if (!newPassword.isBlank() && !newPassword.equals(confirmPassword)) {
                 UiUtil.warn(this, "两次输入的新密码不一致");
                 return;
