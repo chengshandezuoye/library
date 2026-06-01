@@ -7,6 +7,7 @@ import com.bookstore.util.UiUtil;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -98,13 +99,28 @@ public class BookPanel extends JPanel {
 
     private void addBook() {
         try {
+            String isbn = isbnField.getText().trim();
+            String title = titleField.getText().trim();
+            String author = authorField.getText().trim();
+            String publisher = publisherField.getText().trim();
+            BigDecimal retailPrice = new BigDecimal(priceField.getText().trim());
+            int stockQty = Integer.parseInt(stockField.getText().trim());
+            int result = JOptionPane.showConfirmDialog(
+                    this,
+                    "确定新增图书：" + title + "？",
+                    "确认新增",
+                    JOptionPane.YES_NO_OPTION
+            );
+            if (result != JOptionPane.YES_OPTION) {
+                return;
+            }
             bookDao.create(
-                    isbnField.getText().trim(),
-                    titleField.getText().trim(),
-                    authorField.getText().trim(),
-                    publisherField.getText().trim(),
-                    new BigDecimal(priceField.getText().trim()),
-                    Integer.parseInt(stockField.getText().trim())
+                    isbn,
+                    title,
+                    author,
+                    publisher,
+                    retailPrice,
+                    stockQty
             );
             UiUtil.info(this, "新增成功");
             clearForm();
@@ -120,14 +136,27 @@ public class BookPanel extends JPanel {
                 UiUtil.warn(this, "请先选择要修改的图书");
                 return;
             }
+            String title = titleField.getText().trim();
+            String author = authorField.getText().trim();
+            String publisher = publisherField.getText().trim();
+            BigDecimal retailPrice = new BigDecimal(priceField.getText().trim());
+            int stockQty = Integer.parseInt(stockField.getText().trim());
+            int result = JOptionPane.showConfirmDialog(
+                    this,
+                    "确定修改图书：" + title + "？",
+                    "确认修改",
+                    JOptionPane.YES_NO_OPTION
+            );
+            if (result != JOptionPane.YES_OPTION) {
+                return;
+            }
             bookDao.update(
                     Long.parseLong(idField.getText()),
-                    isbnField.getText().trim(),
-                    titleField.getText().trim(),
-                    authorField.getText().trim(),
-                    publisherField.getText().trim(),
-                    new BigDecimal(priceField.getText().trim()),
-                    Integer.parseInt(stockField.getText().trim())
+                    title,
+                    author,
+                    publisher,
+                    retailPrice,
+                    stockQty
             );
             UiUtil.info(this, "修改成功");
             refresh();
@@ -143,6 +172,7 @@ public class BookPanel extends JPanel {
         }
         idField.setText(String.valueOf(tableModel.getValueAt(row, 0)));
         isbnField.setText(String.valueOf(tableModel.getValueAt(row, 1)));
+        isbnField.setEditable(false);
         titleField.setText(String.valueOf(tableModel.getValueAt(row, 2)));
         authorField.setText(String.valueOf(tableModel.getValueAt(row, 3)));
         publisherField.setText(String.valueOf(tableModel.getValueAt(row, 4)));
@@ -153,6 +183,7 @@ public class BookPanel extends JPanel {
     private void clearForm() {
         idField.setText("");
         isbnField.setText("");
+        isbnField.setEditable(true);
         titleField.setText("");
         authorField.setText("");
         publisherField.setText("");

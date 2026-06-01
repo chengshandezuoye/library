@@ -86,17 +86,16 @@ public class BookDao {
         }
     }
 
-    public void update(long id, String isbn, String title, String author, String publisher, BigDecimal retailPrice, int stockQty) throws SQLException {
-        String sql = "UPDATE books SET isbn = ?, title = ?, author = ?, publisher = ?, retail_price = ?, stock_qty = ? WHERE id = ?";
+    public void update(long id, String title, String author, String publisher, BigDecimal retailPrice, int stockQty) throws SQLException {
+        String sql = "UPDATE books SET title = ?, author = ?, publisher = ?, retail_price = ?, stock_qty = ? WHERE id = ?";
         try (Connection connection = DbUtil.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setString(1, isbn);
-            statement.setString(2, title);
-            statement.setString(3, author);
-            statement.setString(4, publisher);
-            statement.setBigDecimal(5, retailPrice);
-            statement.setInt(6, stockQty);
-            statement.setLong(7, id);
+            statement.setString(1, title);
+            statement.setString(2, author);
+            statement.setString(3, publisher);
+            statement.setBigDecimal(4, retailPrice);
+            statement.setInt(5, stockQty);
+            statement.setLong(6, id);
             statement.executeUpdate();
         }
     }
