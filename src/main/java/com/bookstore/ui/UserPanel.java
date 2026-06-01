@@ -126,6 +126,15 @@ public class UserPanel extends JPanel {
                 UiUtil.warn(this, "两次输入的新密码不一致");
                 return;
             }
+            int result = JOptionPane.showConfirmDialog(
+                    this,
+                    "确定创建普通管理员：" + username + "？",
+                    "确认创建",
+                    JOptionPane.YES_NO_OPTION
+            );
+            if (result != JOptionPane.YES_OPTION) {
+                return;
+            }
             userDao.createAdmin(
                     username,
                     password,
@@ -189,6 +198,15 @@ public class UserPanel extends JPanel {
             String confirmPassword = currentUser.isSuperAdmin() ? new String(confirmPasswordField.getPassword()) : "";
             if (!newPassword.isBlank() && !newPassword.equals(confirmPassword)) {
                 UiUtil.warn(this, "两次输入的新密码不一致");
+                return;
+            }
+            int result = JOptionPane.showConfirmDialog(
+                    this,
+                    "确定修改本人信息？",
+                    "确认修改",
+                    JOptionPane.YES_NO_OPTION
+            );
+            if (result != JOptionPane.YES_OPTION) {
                 return;
             }
             userDao.updateProfile(
