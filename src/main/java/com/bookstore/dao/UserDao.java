@@ -54,6 +54,15 @@ public class UserDao {
         }
     }
 
+    public boolean deleteAdmin(long userId) throws SQLException {
+        String sql = "DELETE FROM users WHERE id = ? AND role = 'admin'";
+        try (Connection connection = DbUtil.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, userId);
+            return statement.executeUpdate() > 0;
+        }
+    }
+
     public void updateProfile(long userId, String realName, String employeeNo, String gender, int age, String newPassword) throws SQLException {
         boolean changePassword = newPassword != null && !newPassword.isBlank();
         String sql = changePassword
