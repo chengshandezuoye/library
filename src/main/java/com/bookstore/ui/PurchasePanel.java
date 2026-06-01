@@ -7,6 +7,9 @@ import com.bookstore.model.User;
 import com.bookstore.util.UiStyle;
 import com.bookstore.util.UiUtil;
 
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -15,6 +18,7 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.table.DefaultTableModel;
 import java.awt.BorderLayout;
+import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.math.BigDecimal;
 
@@ -37,27 +41,34 @@ public class PurchasePanel extends JPanel {
         this.currentUser = currentUser;
         setLayout(new BorderLayout(10, 10));
 
-        JPanel formPanel = new JPanel(new GridLayout(5, 4, 8, 8));
-        formPanel.add(new JLabel("已有图书ID（新书可空）"));
-        formPanel.add(bookIdField);
         JButton loadBookButton = new JButton("按ID载入图书");
         loadBookButton.addActionListener(event -> loadBook());
-        formPanel.add(loadBookButton);
-        formPanel.add(new JLabel(""));
-        formPanel.add(new JLabel("ISBN"));
-        formPanel.add(isbnField);
-        formPanel.add(new JLabel("书名"));
-        formPanel.add(titleField);
-        formPanel.add(new JLabel("作者"));
-        formPanel.add(authorField);
-        formPanel.add(new JLabel("出版社"));
-        formPanel.add(publisherField);
-        formPanel.add(new JLabel("进货价"));
-        formPanel.add(purchasePriceField);
-        formPanel.add(new JLabel("数量"));
-        formPanel.add(quantityField);
-        formPanel.add(new JLabel("入库零售价"));
-        formPanel.add(retailPriceField);
+
+        JPanel loadPanel = new JPanel(new BorderLayout(8, 8));
+        loadPanel.setBorder(BorderFactory.createTitledBorder("载入已有图书"));
+        loadPanel.add(new JLabel("已有图书ID（新书可空）"), BorderLayout.WEST);
+        loadPanel.add(bookIdField, BorderLayout.CENTER);
+        loadPanel.add(loadBookButton, BorderLayout.EAST);
+
+        JPanel bookInfoPanel = new JPanel(new GridLayout(2, 4, 8, 8));
+        bookInfoPanel.setBorder(BorderFactory.createTitledBorder("图书信息"));
+        bookInfoPanel.add(new JLabel("ISBN"));
+        bookInfoPanel.add(isbnField);
+        bookInfoPanel.add(new JLabel("书名"));
+        bookInfoPanel.add(titleField);
+        bookInfoPanel.add(new JLabel("作者"));
+        bookInfoPanel.add(authorField);
+        bookInfoPanel.add(new JLabel("出版社"));
+        bookInfoPanel.add(publisherField);
+
+        JPanel purchaseInfoPanel = new JPanel(new GridLayout(1, 6, 8, 8));
+        purchaseInfoPanel.setBorder(BorderFactory.createTitledBorder("进货信息"));
+        purchaseInfoPanel.add(new JLabel("进货价"));
+        purchaseInfoPanel.add(purchasePriceField);
+        purchaseInfoPanel.add(new JLabel("数量"));
+        purchaseInfoPanel.add(quantityField);
+        purchaseInfoPanel.add(new JLabel("入库零售价"));
+        purchaseInfoPanel.add(retailPriceField);
 
         JButton createButton = new JButton("创建进货单");
         JButton payButton = new JButton("付款");
@@ -67,12 +78,25 @@ public class PurchasePanel extends JPanel {
         payButton.addActionListener(event -> pay());
         returnButton.addActionListener(event -> returnOrder());
         stockButton.addActionListener(event -> stockIn());
-        formPanel.add(createButton);
-        formPanel.add(payButton);
-        formPanel.add(returnButton);
-        formPanel.add(stockButton);
+
+        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        actionPanel.setBorder(BorderFactory.createTitledBorder("进货单操作"));
+        actionPanel.add(createButton);
+        actionPanel.add(payButton);
+        actionPanel.add(returnButton);
+        actionPanel.add(stockButton);
 
         UiStyle.tuneTable(table);
+        JPanel formPanel = new JPanel();
+        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
+        formPanel.add(loadPanel);
+        formPanel.add(Box.createVerticalStrut(8));
+        formPanel.add(bookInfoPanel);
+        formPanel.add(Box.createVerticalStrut(8));
+        formPanel.add(purchaseInfoPanel);
+        formPanel.add(Box.createVerticalStrut(8));
+        formPanel.add(actionPanel);
+
         add(formPanel, BorderLayout.NORTH);
         add(new JScrollPane(table), BorderLayout.CENTER);
         refresh();
@@ -159,6 +183,15 @@ public class PurchasePanel extends JPanel {
         if (id == null) {
             return;
         }
+        String status = selectedOrderStatus();
+        if (!"paid".equals(status)) {
+            UiUtil.warn(this, "只有已付款进货单可以入库，当前状态：" + status);
+            return;
+        }
+        if (retailPriceField.getText().trim().isBlank()) {
+            UiUtil.warn(this, "请输入入库零售价");
+            return;
+        }
         try {
             purchaseDao.stockIn(id, new BigDecimal(retailPriceField.getText().trim()));
             UiUtil.info(this, "入库成功，库存已更新");
@@ -175,5 +208,13 @@ public class PurchasePanel extends JPanel {
             return null;
         }
         return Long.parseLong(String.valueOf(tableModel.getValueAt(row, 0)));
+    }
+
+    private String selectedOrderStatus() {
+        int row = table.getSelectedRow();
+        if (row < 0) {
+            return "";
+        }
+        return String.valueOf(tableModel.getValueAt(row, 1));
     }
 }
