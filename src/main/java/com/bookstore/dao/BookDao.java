@@ -14,15 +14,22 @@ import java.util.List;
 
 public class BookDao {
     public List<Book> search(String keyword) throws SQLException {
+        return search(keyword, 0);
+    }
+
+    public List<Book> search(String keyword, int stockFilter) throws SQLException {
         String sql = """
                 SELECT id, isbn, title, author, publisher, retail_price, stock_qty
                 FROM books
-                WHERE ? = ''
+                WHERE (? = ''
                    OR CAST(id AS CHAR) = ?
                    OR isbn LIKE ?
                    OR title LIKE ?
                    OR author LIKE ?
-                   OR publisher LIKE ?
+                   OR publisher LIKE ?)
+                  AND (? = 0
+                   OR (? = 1 AND stock_qty > 0)
+                   OR (? = 2 AND stock_qty = 0))
                 ORDER BY id
                 """;
         List<Book> books = new ArrayList<>();
@@ -35,6 +42,9 @@ public class BookDao {
             statement.setString(4, like);
             statement.setString(5, like);
             statement.setString(6, like);
+            statement.setInt(7, stockFilter);
+            statement.setInt(8, stockFilter);
+            statement.setInt(9, stockFilter);
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
                     books.add(mapBook(resultSet));

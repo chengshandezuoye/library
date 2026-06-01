@@ -132,21 +132,115 @@ public class PurchasePanel extends JPanel {
 
     private void createPurchase() {
         try {
-            Long bookId = bookIdField.getText().isBlank() ? null : Long.parseLong(bookIdField.getText().trim());
+            String bookIdText = bookIdField.getText().trim();
+            Long bookId = parseBookId();
+            if (!bookIdText.isBlank() && bookId == null) {
+                return;
+            }
+            String isbn = isbnField.getText().trim();
+            String title = titleField.getText().trim();
+            String author = authorField.getText().trim();
+            String publisher = publisherField.getText().trim();
+
+            if (bookId == null) {
+                if (isbn.isBlank() || title.isBlank() || author.isBlank() || publisher.isBlank()) {
+                    UiUtil.warn(this, "新书进货时，ISBN、书名、作者、出版社不能为空");
+                    return;
+                }
+                Long existingBookId = bookDao.findIdByIsbn(isbn);
+                if (existingBookId != null) {
+                    UiUtil.warn(this, "该ISBN已存在，请填写已有图书ID或按ID载入图书后再创建进货单");
+                    return;
+                }
+            } else {
+                Book book = bookDao.findById(bookId);
+                if (book == null) {
+                    UiUtil.warn(this, "已有图书ID不存在，不能创建进货单");
+                    return;
+                }
+                isbn = book.getIsbn();
+                title = book.getTitle();
+                author = book.getAuthor();
+                publisher = book.getPublisher();
+            }
+
+            BigDecimal purchasePrice = parsePositiveAmount(purchasePriceField, "进货价");
+            BigDecimal retailPrice = parsePositiveAmount(retailPriceField, "入库零售价");
+            int quantity = parsePositiveQuantity();
+            if (purchasePrice == null || retailPrice == null || quantity <= 0) {
+                return;
+            }
+
             purchaseDao.create(
                     bookId,
-                    isbnField.getText().trim(),
-                    titleField.getText().trim(),
-                    authorField.getText().trim(),
-                    publisherField.getText().trim(),
-                    new BigDecimal(purchasePriceField.getText().trim()),
-                    Integer.parseInt(quantityField.getText().trim()),
+                    isbn,
+                    title,
+                    author,
+                    publisher,
+                    purchasePrice,
+                    quantity,
                     currentUser.getId()
             );
             UiUtil.info(this, "进货单创建成功，当前状态为未付款");
             refresh();
         } catch (Exception e) {
             UiUtil.error(this, e);
+        }
+    }
+
+    private Long parseBookId() {
+        String text = bookIdField.getText().trim();
+        if (text.isBlank()) {
+            return null;
+        }
+        try {
+            long bookId = Long.parseLong(text);
+            if (bookId <= 0) {
+                UiUtil.warn(this, "已有图书ID必须是正整数");
+                return null;
+            }
+            return bookId;
+        } catch (NumberFormatException e) {
+            UiUtil.warn(this, "已有图书ID必须是正整数");
+            return null;
+        }
+    }
+
+    private BigDecimal parsePositiveAmount(JTextField field, String fieldName) {
+        String text = field.getText().trim();
+        if (text.isBlank()) {
+            UiUtil.warn(this, fieldName + "不能为空");
+            return null;
+        }
+        try {
+            BigDecimal amount = new BigDecimal(text);
+            if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+                UiUtil.warn(this, fieldName + "必须大于0");
+                return null;
+            }
+            return amount;
+        } catch (NumberFormatException e) {
+            UiUtil.warn(this, fieldName + "必须是合法数字");
+            return null;
+        }
+    }
+
+    private int parsePositiveQuantity() {
+        String text = quantityField.getText().trim();
+        if (text.isBlank()) {
+            UiUtil.warn(this, "数量不能为空");
+            return -1;
+        }
+        try {
+            int quantity = Integer.parseInt(text);
+            if (quantity <= 0) {
+                UiUtil.warn(this, "数量必须大于0");
+                return -1;
+            }
+            return quantity;
+        } catch (NumberFormatException e) {
+            UiUtil.warn(this, "数量必须是正整数");
+            return -1;
         }
     }
 
