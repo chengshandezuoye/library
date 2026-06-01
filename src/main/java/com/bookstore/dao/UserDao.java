@@ -63,6 +63,16 @@ public class UserDao {
         }
     }
 
+    public boolean resetAdminPassword(long userId, String newPassword) throws SQLException {
+        String sql = "UPDATE users SET password_hash = ? WHERE id = ? AND role = 'admin'";
+        try (Connection connection = DbUtil.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, PasswordUtil.md5(newPassword));
+            statement.setLong(2, userId);
+            return statement.executeUpdate() > 0;
+        }
+    }
+
     public void updateProfile(long userId, String realName, String employeeNo, String gender, int age, String newPassword) throws SQLException {
         boolean changePassword = newPassword != null && !newPassword.isBlank();
         String sql = changePassword

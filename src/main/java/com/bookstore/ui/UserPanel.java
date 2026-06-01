@@ -6,16 +6,22 @@ import com.bookstore.util.UiStyle;
 import com.bookstore.util.UiUtil;
 
 import javax.swing.JButton;
+import javax.swing.BorderFactory;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JPasswordField;
 import javax.swing.JScrollPane;
+import javax.swing.SwingConstants;
 import javax.swing.JTable;
 import javax.swing.JTextField;
-import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
 import java.awt.BorderLayout;
+import java.awt.ComponentOrientation;
 import java.awt.GridLayout;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 public class UserPanel extends JPanel {
     private final User currentUser;
@@ -53,20 +59,16 @@ public class UserPanel extends JPanel {
         fieldsPanel.add(new JPanel());
 
         JButton createButton = new JButton("创建普通管理员");
-        JButton deleteButton = new JButton("删除普通管理员");
         JButton updateButton = new JButton("修改本人信息");
         usernameField.setEditable(currentUser.isSuperAdmin());
         passwordField.setEnabled(currentUser.isSuperAdmin());
         confirmPasswordField.setEnabled(currentUser.isSuperAdmin());
         createButton.setEnabled(currentUser.isSuperAdmin());
-        deleteButton.setEnabled(currentUser.isSuperAdmin());
         createButton.addActionListener(event -> createAdmin());
-        deleteButton.addActionListener(event -> deleteAdmin());
         updateButton.addActionListener(event -> updateSelf());
 
-        JPanel buttonPanel = new JPanel(new GridLayout(1, 3, 8, 8));
+        JPanel buttonPanel = new JPanel(new GridLayout(1, 2, 8, 8));
         buttonPanel.add(createButton);
-        buttonPanel.add(deleteButton);
         buttonPanel.add(updateButton);
 
         JPanel formPanel = new JPanel(new BorderLayout(0, 8));
@@ -74,6 +76,7 @@ public class UserPanel extends JPanel {
         formPanel.add(buttonPanel, BorderLayout.SOUTH);
 
         UiStyle.tuneTable(table);
+        setupAdminPopupMenu();
         add(formPanel, BorderLayout.NORTH);
         add(new JScrollPane(table), BorderLayout.CENTER);
         loadCurrentUser();
@@ -106,6 +109,57 @@ public class UserPanel extends JPanel {
             }
         } catch (Exception e) {
             UiUtil.error(this, e);
+        }
+    }
+
+    private void setupAdminPopupMenu() {
+        if (!currentUser.isSuperAdmin()) {
+            return;
+        }
+        JPopupMenu popupMenu = new JPopupMenu();
+        JButton resetPasswordButton = createPopupButton("重置密码");
+        JButton deleteButton = createPopupButton("删除普通管理员");
+        resetPasswordButton.addActionListener(event -> {
+            popupMenu.setVisible(false);
+            resetAdminPassword();
+        });
+        deleteButton.addActionListener(event -> {
+            popupMenu.setVisible(false);
+            deleteAdmin();
+        });
+        popupMenu.add(resetPasswordButton);
+        popupMenu.add(deleteButton);
+        table.setComponentPopupMenu(popupMenu);
+        table.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent event) {
+                selectPopupRow(event);
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent event) {
+                selectPopupRow(event);
+            }
+        });
+    }
+
+    private JButton createPopupButton(String text) {
+        JButton button = new JButton(text);
+        button.setComponentOrientation(ComponentOrientation.LEFT_TO_RIGHT);
+        button.setHorizontalAlignment(SwingConstants.LEFT);
+        button.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 16));
+        button.setFocusPainted(false);
+        button.setContentAreaFilled(false);
+        return button;
+    }
+
+    private void selectPopupRow(MouseEvent event) {
+        if (!event.isPopupTrigger()) {
+            return;
+        }
+        int row = table.rowAtPoint(event.getPoint());
+        if (row >= 0) {
+            table.setRowSelectionInterval(row, row);
         }
     }
 
@@ -159,15 +213,8 @@ public class UserPanel extends JPanel {
                 UiUtil.warn(this, "只有超级管理员可以删除普通管理员账号");
                 return;
             }
-            int selectedRow = table.getSelectedRow();
-            if (selectedRow < 0) {
-                UiUtil.warn(this, "请先在表格中选择要删除的普通管理员");
-                return;
-            }
-            int modelRow = table.convertRowIndexToModel(selectedRow);
-            String role = String.valueOf(tableModel.getValueAt(modelRow, 6));
-            if (!"admin".equals(role)) {
-                UiUtil.warn(this, "只能删除普通管理员，不能删除超级管理员");
+            int modelRow = getSelectedAdminRow("删除");
+            if (modelRow < 0) {
                 return;
             }
             long userId = ((Number) tableModel.getValueAt(modelRow, 0)).longValue();
@@ -190,6 +237,81 @@ public class UserPanel extends JPanel {
         } catch (Exception e) {
             UiUtil.error(this, e);
         }
+    }
+
+    private void resetAdminPassword() {
+        try {
+            if (!currentUser.isSuperAdmin()) {
+                UiUtil.warn(this, "只有超级管理员可以重置普通管理员密码");
+                return;
+            }
+            int modelRow = getSelectedAdminRow("重置密码");
+            if (modelRow < 0) {
+                return;
+            }
+            long userId = ((Number) tableModel.getValueAt(modelRow, 0)).longValue();
+            String username = String.valueOf(tableModel.getValueAt(modelRow, 1));
+
+            JPasswordField newPasswordField = new JPasswordField();
+            JPasswordField confirmNewPasswordField = new JPasswordField();
+            JPanel panel = new JPanel(new GridLayout(2, 2, 8, 8));
+            panel.add(new JLabel("新密码"));
+            panel.add(newPasswordField);
+            panel.add(new JLabel("确认新密码"));
+            panel.add(confirmNewPasswordField);
+
+            int inputResult = JOptionPane.showConfirmDialog(
+                    this,
+                    panel,
+                    "重置密码：" + username,
+                    JOptionPane.OK_CANCEL_OPTION,
+                    JOptionPane.PLAIN_MESSAGE
+            );
+            if (inputResult != JOptionPane.OK_OPTION) {
+                return;
+            }
+            String newPassword = new String(newPasswordField.getPassword());
+            String confirmNewPassword = new String(confirmNewPasswordField.getPassword());
+            if (newPassword.isBlank()) {
+                UiUtil.warn(this, "新密码不能为空");
+                return;
+            }
+            if (!newPassword.equals(confirmNewPassword)) {
+                UiUtil.warn(this, "两次输入的新密码不一致");
+                return;
+            }
+            int confirmResult = JOptionPane.showConfirmDialog(
+                    this,
+                    "确定重置普通管理员 " + username + " 的密码？",
+                    "确认重置",
+                    JOptionPane.YES_NO_OPTION
+            );
+            if (confirmResult != JOptionPane.YES_OPTION) {
+                return;
+            }
+            if (!userDao.resetAdminPassword(userId, newPassword)) {
+                UiUtil.warn(this, "重置失败，只能重置普通管理员密码");
+                return;
+            }
+            UiUtil.info(this, "密码重置成功");
+        } catch (Exception e) {
+            UiUtil.error(this, e);
+        }
+    }
+
+    private int getSelectedAdminRow(String actionName) {
+        int selectedRow = table.getSelectedRow();
+        if (selectedRow < 0) {
+            UiUtil.warn(this, "请先在表格中选择要" + actionName + "的普通管理员");
+            return -1;
+        }
+        int modelRow = table.convertRowIndexToModel(selectedRow);
+        String role = String.valueOf(tableModel.getValueAt(modelRow, 6));
+        if (!"admin".equals(role)) {
+            UiUtil.warn(this, "只能对普通管理员执行" + actionName + "操作，不能操作超级管理员");
+            return -1;
+        }
+        return modelRow;
     }
 
     private void updateSelf() {
