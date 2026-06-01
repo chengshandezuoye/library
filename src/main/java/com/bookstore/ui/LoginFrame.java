@@ -12,10 +12,14 @@ import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
+import java.util.prefs.Preferences;
 
 public class LoginFrame extends JFrame {
-    private final JTextField usernameField = new JTextField("admin");
-    private final JPasswordField passwordField = new JPasswordField("admin123");
+    private static final String LAST_USERNAME_KEY = "lastUsername";
+
+    private final Preferences preferences = Preferences.userNodeForPackage(LoginFrame.class);
+    private final JTextField usernameField = new JTextField(preferences.get(LAST_USERNAME_KEY, "admin"));
+    private final JPasswordField passwordField = new JPasswordField();
     private final UserDao userDao = new UserDao();
 
     public LoginFrame() {
@@ -48,6 +52,7 @@ public class LoginFrame extends JFrame {
                 UiUtil.warn(this, "用户名或密码错误");
                 return;
             }
+            preferences.put(LAST_USERNAME_KEY, user.getUsername());
             new MainFrame(user).setVisible(true);
             dispose();
         } catch (Exception e) {
