@@ -6,7 +6,6 @@ import com.bookstore.util.UiStyle;
 import com.bookstore.util.UiUtil;
 
 import javax.swing.JButton;
-import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -22,7 +21,6 @@ import java.util.List;
 public class BookPanel extends JPanel {
     private final BookDao bookDao = new BookDao();
     private final JTextField keywordField = new JTextField();
-    private final JComboBox<String> stockFilterBox = new JComboBox<>(new String[]{"显示全部书籍", "仅显示有货书籍", "仅显示缺货书籍"});
     private final JTextField idField = new JTextField();
     private final JTextField isbnField = new JTextField();
     private final JTextField titleField = new JTextField();
@@ -42,15 +40,11 @@ public class BookPanel extends JPanel {
         JButton clearButton = new JButton("清空表单");
         searchButton.addActionListener(event -> refresh());
         clearButton.addActionListener(event -> clearForm());
-        stockFilterBox.addActionListener(event -> refresh());
         JPanel searchButtons = new JPanel(new GridLayout(1, 2, 8, 8));
         searchButtons.add(searchButton);
         searchButtons.add(clearButton);
-        JPanel keywordPanel = new JPanel(new BorderLayout(8, 8));
-        keywordPanel.add(keywordField, BorderLayout.CENTER);
-        keywordPanel.add(stockFilterBox, BorderLayout.EAST);
         searchPanel.add(new JLabel("关键词（编号/ISBN/书名/作者/出版社）"), BorderLayout.WEST);
-        searchPanel.add(keywordPanel, BorderLayout.CENTER);
+        searchPanel.add(keywordField, BorderLayout.CENTER);
         searchPanel.add(searchButtons, BorderLayout.EAST);
 
         JPanel formPanel = new JPanel(new GridLayout(4, 4, 8, 8));
@@ -91,7 +85,7 @@ public class BookPanel extends JPanel {
     private void refresh() {
         try {
             tableModel.setRowCount(0);
-            List<Book> books = bookDao.search(keywordField.getText().trim(), stockFilterBox.getSelectedIndex());
+            List<Book> books = bookDao.search(keywordField.getText().trim());
             for (Book book : books) {
                 tableModel.addRow(new Object[]{
                         book.getId(), book.getIsbn(), book.getTitle(), book.getAuthor(),
